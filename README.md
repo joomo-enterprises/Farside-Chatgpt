@@ -1,6 +1,6 @@
 # On The FarSide Series — Companion Code Repository
 
-> Code examples and exercises from the **"On The FarSide Series"** YouTube channel, based on the book **"FarSide ChatGPT"** by the NinjaTech AI Team, published by Joomo Enterprises Publishing.
+> Code examples and exercises from the **"On The FarSide Series"** YouTube channel, based on the book **"FarSide ChatGPT"** by the Joomo Enterprises, published by Joomo Enterprises Publishing.
 
 This repository contains all the code examples, exercises, and supplementary materials referenced in the YouTube series. The book covers **14 chapters** with **210+ code examples** and **89 exercises** — this repo organizes them into episode-based modules for easy navigation.
 
@@ -8,7 +8,7 @@ This repository contains all the code examples, exercises, and supplementary mat
 
 ## Channel Overview
 
-**On The FarSide Series** is a video demonstration series for the book **"FarSide ChatGPT"** by the NinjaTech AI Team (Joomo Enterprises Publishing). The series brings the book's 89 exercises to life — each episode demonstrates chapters from the book with real code demos, practical exercises, and step-by-step walkthroughs.
+**On The FarSide Series** is a video demonstration series for the book **"FarSide ChatGPT"** by the Joomo Enterprises (Joomo Enterprises Publishing). The series brings the book's 89 exercises to life — each episode demonstrates chapters from the book with real code demos, practical exercises, and step-by-step walkthroughs.
 
 **About the book:**
 - 14 chapters covering the full open-source AI stack
@@ -174,7 +174,7 @@ Each episode directory contains:
 
 ## About the Book
 
-**"FarSide ChatGPT: Building the Next Generation of Bundled Open-Source AI Programs"** by the NinjaTech AI Team, published by Joomo Enterprises Publishing.
+**"FarSide ChatGPT: Building the Next Generation of Bundled Open-Source AI Programs"** by the Joomo Enterprises, published by Joomo Enterprises Publishing.
 
 A comprehensive guide spanning 14 chapters:
 - The AI landscape and model comparisons
@@ -203,5 +203,5 @@ This project is licensed under the MIT License — see [LICENSE](./LICENSE) for 
 ## Links
 
 - **YouTube Channel:** On The FarSide Series
-- **Book:** FarSide ChatGPT by NinjaTech AI Team (Joomo Enterprises Publishing)
+- **Book:** FarSide ChatGPT by Joomo Enterprises (Joomo Enterprises Publishing)
 - **GitHub:** [joomo-enterprises/Farside-Chatgpt](https://github.com/joomo-enterprises/Farside-Chatgpt)

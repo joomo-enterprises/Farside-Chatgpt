@@ -39,20 +39,19 @@ def slide_to_video(slide_path, audio_path, output_path, duration=None):
         except (ValueError, IndexError):
             duration = 5.0
 
-    # Ken Burns: slow zoom from 1.0 to 1.08, slight pan
-    # Use zoompan filter
-    vf = "zoompan=z='1.0+0.0005*in':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={d}:s=1920x1080:fps=30".format(
-        d=int(duration * 30)
-    )
+    # Ken Burns: slow zoom from 1.0 to 1.08 over the clip duration
+    # d = total number of output frames = duration * fps
+    total_frames = max(1, int(duration * 30))
+    vf = f"zoompan=z='1.0+0.0005*in':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={total_frames}:s=1920x1080:fps=30"
 
     cmd = [
         "ffmpeg", "-y",
-        "-loop", "-1", "-i", slide_path,
+        "-f", "image2", "-loop", "1", "-i", slide_path,
         "-i", audio_path,
         "-vf", vf,
         "-c:v", "libx264", "-preset", "medium", "-crf", "23",
         "-c:a", "aac", "-b:a", "320k",
-        "-shortest",
+        "-t", str(duration),
         "-pix_fmt", "yuv420p",
         output_path
     ]
@@ -63,11 +62,11 @@ def slide_to_video(slide_path, audio_path, output_path, duration=None):
         # Fallback: no Ken Burns, just static slide
         cmd2 = [
             "ffmpeg", "-y",
-            "-loop", "-1", "-i", slide_path,
+            "-f", "image2", "-loop", "1", "-i", slide_path,
             "-i", audio_path,
             "-c:v", "libx264", "-preset", "medium", "-crf", "23",
             "-c:a", "aac", "-b:a", "320k",
-            "-shortest",
+            "-t", str(duration),
             "-pix_fmt", "yuv420p",
             output_path
         ]
@@ -89,11 +88,14 @@ def add_transition(clip1_path, clip2_path, output_path, transition_type="fade", 
 
 def concatenate_clips(clip_paths, output_path):
     """Concatenate video clips into final video using concat demuxer."""
-    # Create concat list file
-    concat_list = output_path + ".concat.txt"
+    # Create concat list file in the same dir as output for relative path resolution
+    concat_dir = os.path.dirname(os.path.abspath(output_path))
+    concat_list = os.path.join(concat_dir, "concat_list.txt")
     with open(concat_list, 'w') as f:
         for clip_path in clip_paths:
-            f.write(f"file '{clip_path}'\n")
+            # Use absolute paths to avoid relative path issues
+            abs_path = os.path.abspath(clip_path)
+            f.write(f"file '{abs_path}'\n")
 
     cmd = [
         "ffmpeg", "-y",
@@ -101,12 +103,16 @@ def concatenate_clips(clip_paths, output_path):
         "-i", concat_list,
         "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-c:a", "aac", "-b:a", "320k",
+        "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
         "-pix_fmt", "yuv420p",
         output_path
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-    os.unlink(concat_list)
+    try:
+        os.unlink(concat_list)
+    except Exception:
+        pass
 
     if result.returncode != 0:
         print(f"  Concat ERROR: {result.stderr[:300]}", file=sys.stderr)

@@ -1,6 +1,6 @@
 # Contributing to On The FarSide Series
 
-Thank you for your interest in contributing to the companion code repository for the **"On The FarSide Series"** YouTube channel! This repo contains code examples and exercises based on the book **"FarSide ChatGPT"** by the NinjaTech AI Team.
+Thank you for your interest in contributing to the companion code repository for the **"On The FarSide Series"** YouTube channel! This repo contains code examples and exercises based on the book **"FarSide ChatGPT"** by the Joomo Enterprises.
 
 ## How to Contribute
 

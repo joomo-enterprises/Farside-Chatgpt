@@ -47,10 +47,14 @@ async def generate_narration_async(text, output_path, voice=DEFAULT_VOICE):
             print(f"  TTS error: {stderr.decode()[:200]}", file=sys.stderr)
             return False
 
-        # Normalize audio: convert to mono, 44.1kHz, normalize volume
+        # Normalize audio: loudnorm to -16 LUFS
+        # For very short TTS clips, two-pass doesn't help (LRA=0).
+        # Strategy: single-pass loudnorm here, then boost + mix in audio_pipeline.
+        norm_filter = "loudnorm=I=-16:TP=-1.5:LRA=11"
+
         cmd = [
             "ffmpeg", "-y", "-i", tmp_mp3,
-            "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=summary",
+            "-af", norm_filter,
             "-ar", "44100", "-ac", "2",
             "-b:a", "192k",
             output_path
@@ -90,17 +94,9 @@ def scene_to_narration(scene):
 
     if scene_type == "title":
         parts.append(scene.get("narration", ""))
-    elif scene_type == "hook":
-        q = scene.get("question", "")
-        parts.append(f"Have you ever wondered: {q}")
-        for b in scene.get("bullets", []):
-            parts.append(b)
     elif scene_type == "content":
-        parts.append(scene.get("heading", ""))
-        for b in scene.get("bullets", []):
-            parts.append(b)
-        if scene.get("extra_narration"):
-            parts.append(scene["extra_narration"])
+        # Use the narration field as the spoken text
+        parts.append(scene.get("narration", ""))
     elif scene_type == "code":
         parts.append(scene.get("heading", ""))
         parts.append(scene.get("narration", ""))

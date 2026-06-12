@@ -136,120 +136,197 @@ def parse_structured_script(content, episode_num="01"):
 def parse_fallback_script(content, episode_num="01"):
     """
     Fallback parser for scripts without structured markers.
-    Splits on ## headings and creates content scenes.
+    Handles the SCRIPT.md format with ## sections containing ### sub-sections.
+    Each ### sub-section becomes a scene.
     """
     scenes = []
+    lines = content.split('\n')
+
+    # First pass: extract title from the very first # heading
+    title_text = ""
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('# ') and not stripped.startswith('## '):
+            title_text = stripped.lstrip('#').strip()
+            break
+
+    # Add title scene
+    scenes.append({
+        "type": "title",
+        "title": title_text or f"Episode {episode_num}",
+        "subtitle": f"Farside Series — Episode {episode_num}",
+        "episode": episode_num,
+        "duration": 10,
+        "narration": f"Welcome to episode {episode_num} of the Farside Series.",
+    })
+
+    # Split into ## sections
     sections = re.split(r'\n(?=## )', content)
 
-    # First section is usually the title/intro
-    title_text = ""
-    hook_text = ""
-
-    for idx, section in enumerate(sections):
-        lines = section.strip().split('\n')
-        if not lines:
+    for section in sections:
+        section_lines = section.split('\n')
+        if not section_lines:
             continue
 
-        heading = lines[0].strip().lstrip('#').strip()
-        body_lines = [l.strip() for l in lines[1:] if l.strip() and not l.strip().startswith('---')]
+        section_heading = section_lines[0].strip().lstrip('#').strip()
+        section_lower = section_heading.lower()
 
-        if idx == 0:
-            # Title section
-            scenes.append({
-                "type": "title",
-                "title": heading,
-                "subtitle": body_lines[0] if body_lines else "",
-                "episode": episode_num,
-                "duration": 8,
-                "narration": f"Welcome to episode {episode_num} of On The FarSide Series. {heading}",
-            })
-            continue
+        # Skip non-content sections
+        if any(skip in section_lower for skip in ['episode info', 'production notes', 'code for episode',
+                                                     'timestamps', 'script outline']):
+            # But script outline contains our scenes, so parse its ### sub-sections
+            if 'script outline' not in section_lower:
+                continue
 
-        # Detect section type from heading
-        heading_lower = heading.lower()
-        if "hook" in heading_lower or "intro" in heading_lower:
-            scene_type = "hook"
-            question = heading.replace("HOOK", "").replace("Hook", "").replace(":", "").strip()
-            bullets = [l.lstrip('- ').strip() for l in body_lines if l.startswith('-')]
-            narration = " ".join([l for l in body_lines if not l.startswith('-')])
-            scenes.append({
-                "type": "hook",
-                "question": question or heading,
-                "bullets": bullets[:5],
-                "narration": narration,
-                "episode": episode_num,
-                "duration": max(15, len(bullets) * 5),
-            })
-        elif "outro" in heading_lower or "next" in heading_lower or "subscribe" in heading_lower:
-            scenes.append({
-                "type": "outro",
-                "heading": heading,
-                "subtitle": body_lines[0] if body_lines else "",
-                "narration": " ".join(body_lines),
-                "episode": episode_num,
-                "duration": 15,
-            })
-        elif "code" in heading_lower or "walkthrough" in heading_lower:
-            # Extract code blocks
+        # Split section into ### sub-sections
+        sub_sections = re.split(r'\n(?=### )', section)
+
+        for sub in sub_sections:
+            sub_lines = sub.split('\n')
+            if not sub_lines:
+                continue
+
+            sub_heading = sub_lines[0].strip().lstrip('#').strip()
+            sub_lower = sub_heading.lower()
+
+            # Skip sub-sections that are metadata
+            if any(skip in sub_lower for skip in ['production notes', 'screen recordings', 'graphics needed',
+                                                     'b-roll', 'music:', 'code for episode', 'timestamps',
+                                                     'files to create:']):
+                continue
+
+            # Determine scene type
+            scene_type = "content"
+            if "hook" in sub_lower:
+                scene_type = "hook"
+            elif "outro" in sub_lower:
+                scene_type = "outro"
+            elif "code" in sub_lower or "demo" in sub_lower or "walkthrough" in sub_lower:
+                scene_type = "code"
+            elif "comparison" in sub_lower or "vs" in sub_lower:
+                scene_type = "comparison"
+
+            # Extract content from sub-section
+            narration_parts = []
+            bullets = []
             code_text = ""
+            notes = []
+            screen_text = ""
             in_code = False
-            for line in lines[1:]:
-                if line.strip().startswith("```"):
+            in_key_point = False
+
+            for line in sub_lines[1:]:
+                stripped = line.strip()
+
+                # Skip horizontal rules
+                if stripped == '---':
+                    continue
+
+                # Skip screen markers but extract text
+                screen_match = re.match(r'^\*\*\[SCREEN:\s*(.+?)\]\*\*', stripped)
+                if screen_match:
+                    screen_text = screen_match.group(1).strip()
+                    continue
+
+                # Skip screen markers in brackets
+                screen_match2 = re.match(r'^\[SCREEN:\s*(.+?)\]', stripped)
+                if screen_match2:
+                    screen_text = screen_match2.group(1).strip()
+                    continue
+
+                # KEY POINT ON SCREEN block
+                if '**KEY POINT ON SCREEN:**' in stripped or '[KEY POINT ON SCREEN]' in stripped:
+                    in_key_point = True
+                    continue
+
+                if in_key_point:
+                    if stripped.startswith('```'):
+                        in_key_point = False
+                        continue
+                    # Parse key point lines like "Text:" or "✓ item"
+                    clean = stripped.lstrip('✓').lstrip('- ').strip()
+                    if clean:
+                        bullets.append(clean)
+                    continue
+
+                # Code blocks
+                if stripped.startswith('```'):
                     in_code = not in_code
                     continue
                 if in_code:
-                    code_text += line + "\n"
+                    code_text += line + '\n'
+                    continue
 
-            bullets = [l.lstrip('- ').strip() for l in body_lines if l.startswith('-')]
-            narration = " ".join([l for l in body_lines if not l.startswith('-') and not l.startswith('```')])
-            scenes.append({
-                "type": "code",
-                "heading": heading,
-                "section": heading.split(":")[0].strip() if ":" in heading else "Code",
-                "code": code_text.rstrip(),
-                "bullets": bullets,
-                "narration": narration,
-                "notes": [l.lstrip('- ').strip() for l in body_lines if l.startswith('-')],
-                "episode": episode_num,
-                "duration": max(20, len(code_text.split('\n')) * 3),
-            })
-        elif "comparison" in heading_lower or "vs" in heading_lower or "round" in heading_lower:
-            bullets = [l.lstrip('- ').strip() for l in body_lines if l.startswith('-')]
-            narration = " ".join([l for l in body_lines if not l.startswith('-')])
-            scenes.append({
-                "type": "comparison",
-                "heading": heading,
-                "section": heading.split(":")[0].strip() if ":" in heading else "Comparison",
-                "bullets": bullets,
-                "narration": narration,
-                "cards": [],
-                "episode": episode_num,
-                "duration": max(15, len(bullets) * 4),
-            })
-        else:
-            # Content scene
-            bullets = [l.lstrip('- ').strip() for l in body_lines if l.startswith('-')]
-            narration = " ".join([l for l in body_lines if not l.startswith('-')])
-            scenes.append({
-                "type": "content",
-                "heading": heading,
-                "section": heading.split(":")[0].strip() if ":" in heading else "",
-                "bullets": bullets[:6],
-                "narration": narration,
-                "extra_narration": "",
-                "episode": episode_num,
-                "duration": max(15, len(bullets) * 5 + len(narration.split()) * 0.4),
-            })
+                # Bullet points
+                if stripped.startswith('- ') or stripped.startswith('* '):
+                    bullet_text = stripped[2:].strip()
+                    if bullet_text and not bullet_text.startswith('**'):
+                        bullets.append(bullet_text)
+                    continue
 
-    # Ensure we have an outro
+                # Bold narration lines (NARRATION:)
+                narr_match = re.match(r'^\*\*NARRATION:\*\*\s*"?(.+?)"?$', stripped)
+                if narr_match:
+                    narration_parts.append(narr_match.group(1).strip().strip('"'))
+                    continue
+
+                if stripped.upper() == 'NARRATION:' or stripped == '### NARRATION:':
+                    continue
+
+                # Regular text → narration
+                if stripped and not stripped.startswith('#') and not stripped.startswith('**['):
+                    # Skip bold section markers within narration
+                    clean = stripped.strip('*').strip()
+                    if clean and len(clean) > 3:
+                        narration_parts.append(clean)
+
+            # Build scene
+            narration = ' '.join(narration_parts).strip()
+            code_text = code_text.rstrip()
+
+            # Determine heading — strip timestamps and clean up
+            heading = sub_heading
+            # Remove timestamp patterns like "(0:45 - 2:30)" from heading
+            heading = re.sub(r'\s*\(\d+:\d+\s*-\s*\d+:\d+\)\s*$', '', heading).strip()
+            heading = re.sub(r'^\*\*|\*\*$', '', heading).strip()
+            # Remove "SECTION N:" / "PROBLEM N:" prefix for cleaner display
+            clean_heading = re.match(r'^(?:SECTION|PROBLEM)\s+\d+:\s*(.+)', heading)
+            display_heading = clean_heading.group(1) if clean_heading else heading
+
+            # Calculate duration: ~150 words per minute for narration
+            word_count = len(narration.split())
+            duration = max(10, word_count * 60 // 150 + len(bullets) * 3)
+
+            scene = {
+                "type": scene_type,
+                "heading": display_heading[:80],
+                "subtitle": heading[:80],
+                "section": sub_heading[:60] if sub_heading != heading else "",
+                "bullets": bullets[:8],
+                "narration": narration[:2000],
+                "notes": notes[:4],
+                "code": code_text[:3000] if code_text else "",
+                "screen": screen_text[:100],
+                "episode": episode_num,
+                "duration": min(duration, 120),  # Cap at 2 min per scene
+            }
+
+            if code_text:
+                scene["filename"] = f"scene_{len(scenes):02d}.py"
+
+            # Only add scenes with actual content
+            if narration or bullets or code_text:
+                scenes.append(scene)
+
+    # Ensure outro exists
     if scenes and scenes[-1]["type"] != "outro":
         scenes.append({
             "type": "outro",
             "heading": "Go Beyond ChatGPT",
             "subtitle": "Build the Next Generation of AI",
-            "narration": "Thanks for watching. If you found this helpful, subscribe and hit the bell. Next episode, we go even deeper.",
+            "narration": "Thanks for watching. If you found this helpful, subscribe and hit the bell. All the code from this episode is in the GitHub repo linked in the description. And if you want the deep dive, grab the FarSide ChatGPT book. Link below.",
             "episode": episode_num,
-            "duration": 15,
+            "duration": 20,
         })
 
     return scenes
