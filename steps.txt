@@ -1,0 +1,40 @@
+ Good question. Here's the full video production stack I'd use, all running on the pod (it has 128 cores + 503GB RAM, so it can handle video rendering easily):
+
+    Slide creation:
+    - Canva Pro (browser-based) or LibreOffice Impress for static slides
+    - For the "code on screen" look: I'd generate slides as HTML/CSS then capture with headless Chrome — gives perfect syntax highlighting, dark theme, animated code reveals
+
+    Screen recording / screencasts:
+    - OBS Studio (if we had a desktop) or just ffmpeg to capture headless browser at 30fps
+    - For code demos: ffmpeg -f x11grab or render slides as video directly with ffmpeg
+
+    Audio / voiceover:
+    - TTS generation (edge-tts, gTTS, or Coqui TTS running locally on pod) for scratch tracks
+    - Real voice: you record yourself, or use a quality TTS like xtts-v2 (needs ~4GB VRAM, A4000 has 16GB — perfect)
+    - Background music: free stock from YouTube Audio Library, or generate with AudioCraft/MusicGen (also runs on A4000)
+
+    Video assembly / editing:
+    - ffmpeg for everything — it's the backbone:
+      - Concat slide images into scenes with transitions
+      - Overlay audio/music tracks
+      - Picture-in-picture (slides + face cam if you record one)
+      - Add intro/outro cards, lower thirds, chapter markers
+      - Render final MP4 (H.264 for YouTube)
+    - Python script wrapping ffmpeg calls to automate the whole pipeline — slidemaker.py + assembler.py
+
+    Thumbnail generation:
+ - Already done — those 8 PNGs we just pushed
+
+    Upload to YouTube:
+    - YouTube Data API v3 would need OAuth... simpler approach: render the final MP4s, download them, and you upload manually. Or use yt-dlp (reverse direction: it supports upload via cookies)
+
+    The practical pipeline per episode:
+    1. SCRIPT.md -> parse into scenes (title card, intro, code demo x3, outro)
+    2. Each scene -> HTML template -> headless Chrome screenshot at 1920x1080
+    3. ffmpeg convert image sequences to video segments with Ken Burns pan/zoom
+    4. TTS generate voiceover per scene
+    5. Mix voiceover + background music per segment at -14 LUFS (YouTube standard)
+    6. Concat all segments, add end card with subscribe + next episode link
+    7. Output: one 1080p MP4 per episode
+
+    Want me to start building this pipeline? I'd set it up as a Python project on the pod with a produce.sh <episode-number> command. The first deliverable would be a proof-of-concept: render Episode 1 as a complete draft video you can review before we batch-produce the rest.

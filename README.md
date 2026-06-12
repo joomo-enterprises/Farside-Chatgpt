@@ -8,20 +8,21 @@ This repository contains all the code examples, exercises, and supplementary mat
 
 ## Channel Overview
 
-**On The FarSide Series** is a hands-on YouTube series that takes developers beyond ChatGPT into the world of open-source AI. Each episode features real code demos, practical exercises, and step-by-step walkthroughs — no fluff, just working code you can run yourself.
+**On The FarSide Series** is a video demonstration series for the book **"FarSide ChatGPT"** by the NinjaTech AI Team (Joomo Enterprises Publishing). The series brings the book's 89 exercises to life — each episode demonstrates chapters from the book with real code demos, practical exercises, and step-by-step walkthroughs.
 
-**What you'll learn:**
-- How to set up a local AI development environment from scratch
-- How to compare, benchmark, and choose the right LLM for your use case
-- How to build multimodal AI applications (text, image, audio, video)
-- How to build and deploy your own chatbot with open-source models
-- How to navigate AI ethics, bias, and responsible development
-- The math and ML fundamentals that power modern AI
+**About the book:**
+- 14 chapters covering the full open-source AI stack
+- 210+ code examples (all in this repo)
+- 89 hands-on exercises (each demonstrated in a video episode)
+- Published by Joomo Enterprises Publishing
 
-**Who this is for:**
-- Developers who want to go beyond ChatGPT and understand what's under the hood
-- Self-taught programmers looking to add AI/ML skills
-- Anyone who learns best by watching real code being written and explained
+**What the videos demonstrate:**
+- Setting up a local AI development environment from scratch (Chapter 3-4)
+- Comparing and benchmarking LLMs — GPT, Claude, Gemini, LLaMA & more (Chapter 1-2)
+- Building multimodal AI applications with text, image, and audio models (Chapter 13)
+- Building and deploying your own chatbot with open-source models (Chapter 5)
+- AI ethics, bias detection, and responsible development (Chapter 6)
+- The math and ML fundamentals that power neural networks (Chapter 7-8)
 
 **Series structure (Phase 1 — Foundation):**
 - 8 episodes, each 15-25 minutes
