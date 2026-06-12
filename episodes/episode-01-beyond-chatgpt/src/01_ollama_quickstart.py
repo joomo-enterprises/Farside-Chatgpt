@@ -1,164 +1,146 @@
-# Episode 1: Quick Start — Run AI Locally in 2 Commands
+#!/usr/bin/env python3
+"""
+Episode 1: Ollama Quickstart
+Install and run your first local AI model in 2 commands.
 
-"""Install Ollama and run your first local AI model.
-From Episode 1 of On The FarSide Series.
+Usage:
+    python 01_ollama_quickstart.py
+    python 01_ollama_quickstart.py --model mistral
+    python 01_ollama_quickstart.py --model llama3.2
+    python 01_ollama_quickstart.py --model gemma3
 """
 
 import subprocess
 import sys
+import argparse
 import shutil
 
 
 def check_ollama_installed() -> bool:
-    """Check if Ollama is installed on this system."""
+    """Check if ollama is available on PATH."""
     return shutil.which("ollama") is not None
 
 
 def install_ollama():
-    """Install Ollama on Linux/macOS."""
-    print("=" * 50)
-    print("  Installing Ollama...")
-    print("=" * 50)
-    print()
-    print("Ollama is not installed. Installing now...")
-    print("(This downloads ~200MB, takes 1-2 minutes on fast connection)")
-    print()
-
-    result = subprocess.run(
-        ["bash", "-c", "curl -fsSL https://ollama.ai/install.sh | sh"],
-        capture_output=False
-    )
-
-    if result.returncode != 0:
-        print("ERROR: Ollama installation failed.")
-        print("Install manually: https://ollama.ai/download")
-        sys.exit(1)
-
-    print()
-    print("Ollama installed successfully!")
-
-
-def pull_model(model: str = "mistral"):
-    """Pull an Ollama model."""
-    print()
-    print("=" * 50)
-    print(f"  Pulling model: {model}")
-    print("=" * 50)
-    print()
-    print(f"Downloading {model}... (this is a one-time ~4GB download)")
-    print()
-
-    result = subprocess.run(["ollama", "pull", model])
-
-    if result.returncode != 0:
-        print(f"ERROR: Failed to pull model '{model}'.")
-        print("Try: ollama pull mistral")
-        sys.exit(1)
-
-    print()
-    print(f"Model '{model}' ready!")
-
-
-def run_local_chat(model: str = "mistral"):
-    """Start an interactive local chat session."""
-    print()
-    print("=" * 50)
-    print(f"  Starting local AI chat with {model}")
-    print("=" * 50)
-    print()
-    print("Type your messages below. Type 'quit' to exit.")
-    print()
-
-    # Use the Ollama Python API for programmatic chat
+    """Install Ollama using the official install script."""
+    print("=" * 60)
+    print("Installing Ollama...")
+    print("=" * 60)
     try:
-        import ollama
-    except ImportError:
-        print("Installing ollama Python package...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "ollama"],
-                       capture_output=True)
-        import ollama
-
-    messages = []
-
-    # Seed with a system message
-    messages.append({
-        "role": "system",
-        "content": (
-            "You are a helpful AI assistant running locally via Ollama. "
-            "You are part of Episode 1 of On The FarSide Series, "
-            "demonstrating local AI capabilities."
+        subprocess.run(
+            ["curl", "-fsSL", "https://ollama.ai/install.sh", "|", "sh"],
+            shell=True,
+            check=True,
         )
-    })
+        print("\nOllama installed successfully!")
+        return True
+    except subprocess.CalledProcessError:
+        print("\nFailed to install automatically.")
+        print("Install manually: https://ollama.ai/download")
+        return False
 
-    print("─" * 50)
-    print("  LOCAL AI CHAT — Running on YOUR machine")
-    print("  No API key needed. No data leaves your computer.")
-    print("─" * 50)
-    print()
 
-    while True:
-        try:
-            user_input = input("You: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nGoodbye!")
-            break
+def pull_model(model: str) -> bool:
+    """Pull a model from Ollama registry."""
+    print(f"\nPulling model: {model}")
+    print("This may take a few minutes depending on your connection...\n")
+    try:
+        subprocess.run(["ollama", "pull", model], check=True)
+        print(f"\nModel '{model}' is ready!")
+        return True
+    except subprocess.CalledProcessError:
+        print(f"\nFailed to pull model '{model}'.")
+        return False
 
-        if not user_input:
-            continue
 
-        if user_input.lower() in ("quit", "exit", "q"):
-            print("\nGoodbye! You just ran AI locally. Welcome to the FarSide.")
-            break
+def chat_with_model(model: str):
+    """Start an interactive chat session with the model."""
+    print(f"\nStarting chat with {model}...")
+    print("Type 'quit' or '/bye' to exit.\n")
+    print("-" * 60)
 
-        messages.append({"role": "user", "content": user_input})
+    try:
+        subprocess.run(["ollama", "run", model])
+    except KeyboardInterrupt:
+        print("\n\nChat session ended.")
+    except subprocess.CalledProcessError:
+        print(f"\nFailed to start chat with '{model}'.")
 
-        try:
-            response = ollama.chat(model=model, messages=messages)
-            reply = response["message"]["content"]
-            messages.append({"role": "assistant", "content": reply})
-            print(f"\nAI: {reply}\n")
-        except Exception as e:
-            print(f"\nERROR: {e}")
-            print(f"Make sure Ollama is running: ollama serve")
-            break
 
-    return messages
+def list_models():
+    """List all locally available models."""
+    try:
+        result = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, check=True
+        )
+        print(result.stdout)
+    except subprocess.CalledProcessError:
+        print("Could not list models. Is Ollama running?")
 
 
 def main():
-    """Main entry point for Episode 1 demo."""
-    print()
-    print("╔══════════════════════════════════════════════════╗")
-    print("║  On The FarSide Series — Episode 1              ║")
-    print("║  Why Look Beyond ChatGPT in 2025                ║")
-    print("║  Demo: Run AI Locally in 2 Commands             ║")
-    print("╚══════════════════════════════════════════════════╝")
-    print()
+    parser = argparse.ArgumentParser(
+        description="Ollama Quickstart — Run local AI in minutes"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="mistral",
+        help="Model to pull (default: mistral). Options: mistral, llama3.2, gemma3, codellama",
+    )
+    parser.add_argument(
+        "--chat",
+        action="store_true",
+        help="Start interactive chat after pulling model",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List locally available models",
+    )
 
-    model = "mistral"
+    args = parser.parse_args()
 
-    # Check if Ollama is installed
+    print("=" * 60)
+    print("  Ollama Quickstart — On The FarSide Series, Episode 1")
+    print("=" * 60)
+
+    if args.list:
+        list_models()
+        return
+
+    # Step 1: Check if Ollama is installed
     if not check_ollama_installed():
-        install_ollama()
-
-    # Check if model is already pulled
-    print(f"Checking if '{model}' model is available...")
-    try:
-        result = subprocess.run(
-            ["ollama", "list"],
-            capture_output=True, text=True, timeout=10
-        )
-        model_available = model in result.stdout
-    except Exception:
-        model_available = False
-
-    if not model_available:
-        pull_model(model)
+        print("\nOllama is not installed on this system.")
+        response = input("Would you like to install it? (y/n): ").strip().lower()
+        if response == "y":
+            if not install_ollama():
+                sys.exit(1)
+        else:
+            print("Skipping install. Get Ollama at: https://ollama.ai/download")
+            sys.exit(0)
     else:
-        print(f"Model '{model}' already available.")
+        print("\nOllama is already installed!")
 
-    # Start the chat
-    run_local_chat(model)
+    # Step 2: Pull the model
+    print(f"\nModel selected: {args.model}")
+    response = input(f"Pull '{args.model}' now? (y/n): ").strip().lower()
+    if response == "y":
+        if not pull_model(args.model):
+            sys.exit(1)
+
+    # Step 3: Optionally chat
+    if args.chat:
+        chat_with_model(args.model)
+    else:
+        response = input(f"\nStart chatting with {args.model}? (y/n): ").strip().lower()
+        if response == "y":
+            chat_with_model(args.model)
+
+    print("\n" + "=" * 60)
+    print("  You now have a LOCAL AI running. No API calls. No cloud.")
+    print("  This is the first step beyond ChatGPT.")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
